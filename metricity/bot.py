@@ -19,7 +19,7 @@ from discord import (
     VoiceChannel,
 )
 from discord.abc import Messageable
-from discord.ext.commands import Bot
+from discord.ext.commands import Bot, when_mentioned
 
 from metricity import __version__
 from metricity.config import BotConfig
@@ -46,7 +46,7 @@ intents = Intents(
 
 
 bot = Bot(
-    command_prefix="",
+    command_prefix=when_mentioned,
     help_command=None,
     intents=intents,
     max_messages=None,
@@ -352,6 +352,8 @@ async def on_message(message: DiscordMessage) -> None:
 
     await sync_process_complete.wait()
     await channel_sync_in_progress.wait()
+
+    await bot.process_commands(message)
 
     if not await User.get(str(message.author.id)):
         return
