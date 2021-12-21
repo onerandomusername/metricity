@@ -52,6 +52,7 @@ bot = Bot(
     max_messages=None,
     activity=Game(f"Metricity {__version__}")
 )
+bot.load_extension("metricity.exts.message_sync")
 
 sync_process_complete = asyncio.Event()
 channel_sync_in_progress = asyncio.Event()
