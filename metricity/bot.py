@@ -25,6 +25,7 @@ from metricity import __version__
 from metricity.config import BotConfig
 from metricity.database import connect, db
 from metricity.models import Category, Channel, Message, Thread, User
+from metricity.utils import insert_thread, sync_message
 
 log = logging.getLogger(__name__)
 
@@ -55,19 +56,6 @@ bot = Bot(
 sync_process_complete = asyncio.Event()
 channel_sync_in_progress = asyncio.Event()
 db_ready = asyncio.Event()
-
-
-async def insert_thread(thread: ThreadChannel) -> None:
-    """Insert the given thread to the database."""
-    await Thread.create(
-        id=str(thread.id),
-        parent_channel_id=str(thread.parent_id),
-        name=thread.name,
-        archived=thread.archived,
-        auto_archive_duration=thread.auto_archive_duration,
-        locked=thread.locked,
-        type=thread.type.name,
-    )
 
 
 async def sync_channels(guild: Guild) -> None:
@@ -373,21 +361,8 @@ async def on_message(message: DiscordMessage) -> None:
     if cat_id in BotConfig.ignore_categories:
         return
 
-    args = {
-        "id": str(message.id),
-        "channel_id": str(message.channel.id),
-        "author_id": str(message.author.id),
-        "created_at": message.created_at
-    }
-
-    if isinstance(message.channel, ThreadChannel):
-        thread = message.channel
-        args["channel_id"] = str(thread.parent_id)
-        args["thread_id"] = str(thread.id)
-        if not await Thread.get(str(thread.id)):
-            await insert_thread(thread)
-
-    await Message.create(**args)
+    from_thread = isinstance(message.channel, ThreadChannel)
+    await sync_message(message, from_thread=from_thread)
 
 
 @bot.event
